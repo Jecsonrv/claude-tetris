@@ -1,0 +1,78 @@
+name: Claude Issue Triage
+
+on:
+  issues:
+    types: [opened, edited]
+
+jobs:
+  triage:
+    if: github.event.sender.type != 'Bot'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Run Claude Issue Triage
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          claude_args: >-
+            --allowed-tools
+            "Bash(gh issue view *),Bash(gh issue edit *),Bash(gh issue comment *),Bash(gh label list *),Bash(gh label create *),Read(*)"
+          prompt: |
+            Eres un agente de triage para el repositorio de Tetris en JavaScript.
+            Tu tarea es analizar el issue #${{ github.event.issue.number }} del repositorio ${{ github.repository }} y realizar las siguientes acciones:
+
+            ## Paso 1 — Leer el issue
+            Ejecuta `gh issue view ${{ github.event.issue.number }}` para obtener el título y cuerpo completo del issue.
+
+            ## Paso 2 — Revisar y preparar labels
+            Ejecuta `gh label list` para ver los labels existentes.
+            Crea con `gh label create "<nombre>" --color "<color-hex>" --description "<desc>"` solo los labels que necesites y que no existan todavía.
+            Usa estas categorías como guía (crea solo los que apliquen al issue):
+            - Tipo: `type: bug` (#d73a4a), `type: feature` (#0075ca), `type: enhancement` (#a2eeef), `type: question` (#d876e3), `type: docs` (#e4e669)
+            - Prioridad: `priority: high` (#e11d48), `priority: medium` (#f59e0b), `priority: low` (#22c55e)
+            - Área: `area: gameplay` (#7c3aed), `area: ui` (#0ea5e9), `area: performance` (#f97316), `area: scoring` (#84cc16)
+
+            ## Paso 3 — Asignar labels al issue
+            Ejecuta `gh issue edit ${{ github.event.issue.number }} --add-label "<label1>,<label2>,..."` con los labels más apropiados para este issue.
+
+            ## Paso 4 — Publicar diagnóstico como comentario
+            Ejecuta `gh issue comment ${{ github.event.issue.number }} --body "..."` con un diagnóstico general estructurado en **español** que incluya estas secciones:
+
+            ---
+            🤖 **Diagnóstico automático — Claude Triage**
+
+            ### 📋 Resumen
+            <descripción clara y concisa del problema o solicitud>
+
+            ### 🏷️ Clasificación
+            - **Tipo:** <tipo del issue>
+            - **Prioridad:** <prioridad con justificación breve>
+
+            ### 🗂️ Componentes afectados
+            <lista de archivos o funciones del repo involucrados, ej. `game.js > tryRotate()`, `index.html`, `style.css`>
+
+            ### 🔍 Análisis técnico
+            <posible causa raíz o análisis del problema basado en el código del repositorio>
+
+            ### 🛠️ Pasos sugeridos para la solución
+            <plan de alto nivel, sin implementar código — solo los pasos y qué habría que cambiar>
+
+            ---
+            *Triage generado automáticamente. Puede ser refinado por el equipo.*
+            ---
+
+            ## Reglas importantes
+            - NO edites el cuerpo del issue.
+            - NO escribas código de solución.
+            - Publica exactamente UN comentario de diagnóstico.
+            - Si el issue fue editado y ya existe un comentario de diagnóstico previo tuyo, igual publica uno nuevo con el análisis actualizado.
+            - Basa el análisis técnico en el código real del repositorio (puedes leer `game.js`, `index.html`, `style.css`).
