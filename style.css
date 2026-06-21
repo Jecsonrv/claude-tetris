@@ -208,6 +208,25 @@ kbd {
   text-transform: none;
 }
 
+/* ---- Skin selector ---- */
+.skin-select {
+  background: var(--kbd-bg);
+  border: 1px solid var(--kbd-border);
+  border-radius: 4px;
+  color: var(--color);
+  font-size: 12px;
+  font-family: inherit;
+  padding: 4px 6px;
+  cursor: pointer;
+  width: 100%;
+  transition: background 0.3s, color 0.3s, border-color 0.3s;
+}
+
+.skin-select:focus {
+  outline: none;
+  border-color: var(--toggle-thumb-bg);
+}
+
 /* ---- Toggle de tema ---- */
 .toggle-switch {
   display: flex;
