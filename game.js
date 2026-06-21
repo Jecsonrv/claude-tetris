@@ -301,4 +301,19 @@ document.addEventListener('keydown', e => {
 
 restartBtn.addEventListener('click', init);
 
+// Theme toggle
+const themeToggle = document.getElementById('theme-toggle');
+const themeIcon = document.getElementById('theme-icon');
+if (localStorage.getItem('tetris-theme') === 'light') {
+  document.body.classList.add('light-mode');
+  themeToggle.checked = true;
+  themeIcon.textContent = '☀️';
+}
+themeToggle.addEventListener('change', () => {
+  const isLight = themeToggle.checked;
+  document.body.classList.toggle('light-mode', isLight);
+  themeIcon.textContent = isLight ? '☀️' : '🌙';
+  localStorage.setItem('tetris-theme', isLight ? 'light' : 'dark');
+});
+
 init();
