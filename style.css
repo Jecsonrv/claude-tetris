@@ -28,26 +28,26 @@
 }
 
 body.light-mode {
-  --bg: #f0f0f5;
-  --color: #1a1a2e;
-  --canvas-bg: #ffffff;
-  --canvas-border: #c0c0d0;
-  --title-color: #3a5bbf;
-  --title-shadow: rgba(58, 91, 191, 0.3);
-  --label-color: #888899;
-  --value-color: #3a5bbf;
-  --controls-color: #555;
-  --kbd-bg: #e8e8f0;
-  --kbd-border: #c8c8d8;
-  --kbd-color: #444;
-  --overlay-bg: rgba(220, 220, 235, 0.85);
-  --overlay-title-color: #c0392b;
-  --overlay-score-color: #3a5bbf;
-  --btn-bg: #3a5bbf;
+  --bg: #d8dae8;
+  --color: #28283c;
+  --canvas-bg: #e8eaf4;
+  --canvas-border: #aaaac0;
+  --title-color: #3f5fa8;
+  --title-shadow: rgba(63, 95, 168, 0.2);
+  --label-color: #8888a4;
+  --value-color: #3f5fa8;
+  --controls-color: #585870;
+  --kbd-bg: #cccedf;
+  --kbd-border: #aaaac0;
+  --kbd-color: #484858;
+  --overlay-bg: rgba(190, 192, 215, 0.9);
+  --overlay-title-color: #a82a38;
+  --overlay-score-color: #3f5fa8;
+  --btn-bg: #3f5fa8;
   --btn-color: #ffffff;
-  --btn-hover-bg: #2a4aaf;
-  --toggle-track-bg: #c0c0d0;
-  --toggle-thumb-bg: #3a5bbf;
+  --btn-hover-bg: #2f4f98;
+  --toggle-track-bg: #aaaac0;
+  --toggle-thumb-bg: #3f5fa8;
 }
 
 body {

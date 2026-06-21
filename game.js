@@ -169,7 +169,7 @@ function drawBlock(context, x, y, colorIndex, size, alpha) {
 }
 
 function drawGrid() {
-  ctx.strokeStyle = '#22222e';
+  ctx.strokeStyle = document.body.classList.contains('light-mode') ? '#c8cae0' : '#22222e';
   ctx.lineWidth = 0.5;
   for (let c = 1; c < COLS; c++) {
     ctx.beginPath();
@@ -241,6 +241,7 @@ function togglePause() {
 }
 
 function loop(ts) {
+  if (gameOver) return;
   const dt = ts - lastTime;
   lastTime = ts;
   dropAccum += dt;
@@ -250,6 +251,7 @@ function loop(ts) {
       current.y++;
     } else {
       lockPiece();
+      if (gameOver) return;
     }
   }
   draw();
