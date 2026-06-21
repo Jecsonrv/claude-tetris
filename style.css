@@ -25,6 +25,9 @@
   --btn-hover-bg: #9bbdff;
   --toggle-track-bg: #3a3a5a;
   --toggle-thumb-bg: #7aa2f7;
+  --pause-title-color: #ffd54f;
+  --select-bg: #22223a;
+  --select-border: #3a3a5a;
 }
 
 body.light-mode {
@@ -48,6 +51,9 @@ body.light-mode {
   --btn-hover-bg: #2f4f98;
   --toggle-track-bg: #aaaac0;
   --toggle-thumb-bg: #3f5fa8;
+  --pause-title-color: #8a6f00;
+  --select-bg: #cccedf;
+  --select-border: #aaaac0;
 }
 
 body {
@@ -303,4 +309,102 @@ kbd {
 
 #restart-btn:hover {
   background: var(--btn-hover-bg);
+}
+
+/* ---- Pause menu ---- */
+.pause-box {
+  gap: 16px;
+  min-width: 200px;
+}
+
+.pause-title {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: 4px;
+  color: var(--pause-title-color);
+}
+
+.pause-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+#resume-btn,
+#pause-restart-btn {
+  background: var(--btn-bg);
+  color: var(--btn-color);
+  border: none;
+  border-radius: 6px;
+  padding: 10px 28px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 1px;
+  transition: background 0.15s;
+  width: 100%;
+}
+
+#resume-btn:hover,
+#pause-restart-btn:hover {
+  background: var(--btn-hover-bg);
+}
+
+.pause-section-label {
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--label-color);
+  font-weight: 600;
+  text-align: left;
+  width: 100%;
+  margin-bottom: 4px;
+}
+
+.pause-controls {
+  width: 100%;
+  text-align: left;
+}
+
+.pause-controls ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 4px;
+}
+
+.pause-controls li {
+  font-size: 12px;
+  color: var(--controls-color);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pause-level-select {
+  width: 100%;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+#start-level-select {
+  background: var(--select-bg);
+  color: var(--color);
+  border: 1px solid var(--select-border);
+  border-radius: 4px;
+  padding: 6px 10px;
+  font-size: 13px;
+  font-family: 'Courier New', Courier, monospace;
+  font-weight: 700;
+  cursor: pointer;
+  width: 100%;
+  transition: border-color 0.15s;
+}
+
+#start-level-select:focus {
+  outline: none;
+  border-color: var(--btn-bg);
 }
