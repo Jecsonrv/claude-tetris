@@ -51,10 +51,197 @@ const levelEl = document.getElementById('level');
 const overlay = document.getElementById('overlay');
 const overlayTitle = document.getElementById('overlay-title');
 const overlayScore = document.getElementById('overlay-score');
+const overlayContent = document.getElementById('overlay-content');
 const restartBtn = document.getElementById('restart-btn');
 
 let board, current, next, score, lines, level, paused, gameOver, lastTime, dropAccum, dropInterval, animId;
 let powerUpPending, nextPowerUpAt, freezeRemaining, flashCells, flashRemaining;
+let combo, maxCombo;
+
+// ---- localStorage helpers ----
+
+const LS_SCORES = 'tetris-highscores';
+const LS_BEST_COMBO = 'tetris-best-combo';
+const LS_MAX_LINES = 'tetris-max-lines';
+
+function getHighscores() {
+  try { return JSON.parse(localStorage.getItem(LS_SCORES)) || []; } catch { return []; }
+}
+
+function getBestCombo() {
+  return parseInt(localStorage.getItem(LS_BEST_COMBO) || '0', 10);
+}
+
+function getMaxLines() {
+  return parseInt(localStorage.getItem(LS_MAX_LINES) || '0', 10);
+}
+
+function qualifiesForTop5(s) {
+  const hs = getHighscores();
+  return hs.length < 5 || s > (hs[hs.length - 1]?.score ?? 0);
+}
+
+function saveScore(name, s, l, c) {
+  const hs = getHighscores();
+  hs.push({ name: name || 'Anónimo', score: s, lines: l, combo: c });
+  hs.sort((a, b) => b.score - a.score);
+  if (hs.length > 5) hs.length = 5;
+  localStorage.setItem(LS_SCORES, JSON.stringify(hs));
+
+  const bc = getBestCombo();
+  if (c > bc) localStorage.setItem(LS_BEST_COMBO, String(c));
+
+  const ml = getMaxLines();
+  if (l > ml) localStorage.setItem(LS_MAX_LINES, String(l));
+}
+
+function clearRecords() {
+  localStorage.removeItem(LS_SCORES);
+  localStorage.removeItem(LS_BEST_COMBO);
+  localStorage.removeItem(LS_MAX_LINES);
+}
+
+// ---- Highscore table rendering ----
+
+function buildTable(highlightEntry) {
+  const hs = getHighscores();
+  const bestCombo = getBestCombo();
+  const maxL = getMaxLines();
+
+  let html = '';
+
+  html += `<div class="hs-stats">`;
+  html += `<span>Mejor combo: <strong>${bestCombo}</strong></span>`;
+  html += `<span>Máx. líneas: <strong>${maxL}</strong></span>`;
+  html += `</div>`;
+
+  if (hs.length === 0) {
+    html += `<p class="hs-empty">Sin records aún</p>`;
+  } else {
+    html += `<table class="hs-table"><thead><tr>`;
+    html += `<th>#</th><th>Nombre</th><th>Score</th><th>Líneas</th><th>Combo</th>`;
+    html += `</tr></thead><tbody>`;
+    hs.forEach((e, i) => {
+      const isHighlight = highlightEntry &&
+        e.name === highlightEntry.name &&
+        e.score === highlightEntry.score &&
+        e.lines === highlightEntry.lines;
+      html += `<tr${isHighlight ? ' class="hs-highlight"' : ''}>`;
+      html += `<td>${i + 1}</td><td>${e.name}</td><td>${e.score.toLocaleString()}</td><td>${e.lines}</td><td>${e.combo}</td>`;
+      html += `</tr>`;
+    });
+    html += `</tbody></table>`;
+  }
+
+  html += `<button id="clear-records-btn" class="btn-secondary">Borrar records</button>`;
+  return html;
+}
+
+// ---- Overlay modes ----
+
+// Bind the "Borrar records" button; rebuilds content and re-binds on click.
+// afterClear() is called to re-render the content area after clearing.
+function bindClearBtn(afterClear) {
+  const clr = document.getElementById('clear-records-btn');
+  if (!clr) return;
+  clr.addEventListener('click', () => {
+    clearRecords();
+    afterClear();
+  });
+}
+
+function bindOverlayActions(isStart) {
+  const r2 = document.getElementById('restart-btn2');
+  if (r2) r2.addEventListener('click', init);
+
+  const playBtn = document.getElementById('play-btn');
+  if (playBtn) playBtn.addEventListener('click', () => {
+    overlay.classList.add('hidden');
+    init();
+  });
+
+  if (isStart) {
+    bindClearBtn(() => {
+      overlayContent.innerHTML = buildTable(null) +
+        `<button id="play-btn" class="btn-primary">Jugar</button>`;
+      bindOverlayActions(true);
+    });
+  } else {
+    bindClearBtn(() => {
+      overlayContent.innerHTML = buildTable(null) +
+        `<button id="restart-btn2" class="btn-primary">Reiniciar</button>`;
+      bindOverlayActions(false);
+    });
+  }
+}
+
+function showStartOverlay() {
+  overlayTitle.textContent = 'TETRIS';
+  overlayScore.textContent = '';
+  overlayContent.innerHTML = buildTable(null) +
+    `<button id="play-btn" class="btn-primary">Jugar</button>`;
+  restartBtn.classList.add('hidden');
+  overlay.classList.remove('hidden');
+  bindOverlayActions(true);
+}
+
+function showGameOverOverlay() {
+  overlayTitle.textContent = 'GAME OVER';
+  overlayScore.textContent = `Puntuación: ${score.toLocaleString()}`;
+  restartBtn.classList.add('hidden');
+
+  const qualifies = qualifiesForTop5(score);
+
+  if (qualifies) {
+    // Show input row but no Reiniciar yet — must save first to avoid silent score loss
+    overlayContent.innerHTML =
+      `<div class="hs-input-row">` +
+      `<input type="text" id="player-name" class="hs-name-input" placeholder="Tu nombre" maxlength="16" />` +
+      `<button id="save-btn" class="btn-primary">Guardar</button>` +
+      `</div>` +
+      buildTable(null);
+
+    let saved = false;
+
+    const doSave = () => {
+      if (saved) return;
+      saved = true;
+      const name = (document.getElementById('player-name').value || 'Anónimo').trim();
+      saveScore(name, score, lines, maxCombo);
+      const entry = { name, score, lines, combo: maxCombo };
+      overlayContent.innerHTML = buildTable(entry) +
+        `<button id="restart-btn2" class="btn-primary">Reiniciar</button>`;
+      bindOverlayActions(false);
+    };
+
+    document.getElementById('save-btn').addEventListener('click', doSave);
+    document.getElementById('player-name').addEventListener('keydown', e => {
+      if (e.code === 'Enter') doSave();
+    });
+    // Bind clear-records-btn in pre-save state: clear but keep save form
+    bindClearBtn(() => {
+      overlayContent.innerHTML =
+        `<div class="hs-input-row">` +
+        `<input type="text" id="player-name" class="hs-name-input" placeholder="Tu nombre" maxlength="16" />` +
+        `<button id="save-btn" class="btn-primary">Guardar</button>` +
+        `</div>` +
+        buildTable(null);
+      document.getElementById('save-btn').addEventListener('click', doSave);
+      document.getElementById('player-name').addEventListener('keydown', e2 => {
+        if (e2.code === 'Enter') doSave();
+      });
+      bindClearBtn(() => { /* re-clear does nothing more */ });
+    });
+  } else {
+    overlayContent.innerHTML = buildTable(null) +
+      `<button id="restart-btn2" class="btn-primary">Reiniciar</button>`;
+    bindOverlayActions(false);
+  }
+
+  overlay.classList.remove('hidden');
+}
+
+// ---- Board / game functions ----
 
 function createBoard() {
   return Array.from({ length: ROWS }, () => new Array(COLS).fill(0));
@@ -128,6 +315,8 @@ function clearLines() {
     }
   }
   if (cleared) {
+    combo++;
+    if (combo > maxCombo) maxCombo = combo;
     lines += cleared;
     score += (LINE_SCORES[cleared] || 0) * level;
     level = Math.floor(lines / 10) + 1;
@@ -138,7 +327,10 @@ function clearLines() {
       nextPowerUpAt += POWERUP_EVERY;
     }
     updateHUD();
+  } else {
+    combo = 0;
   }
+  return cleared;
 }
 
 function applyPowerUp(p) {
@@ -383,9 +575,7 @@ function drawNext() {
 function endGame() {
   gameOver = true;
   cancelAnimationFrame(animId);
-  overlayTitle.textContent = 'GAME OVER';
-  overlayScore.textContent = `Puntuación: ${score.toLocaleString()}`;
-  overlay.classList.remove('hidden');
+  showGameOverOverlay();
 }
 
 function togglePause() {
@@ -394,10 +584,13 @@ function togglePause() {
   if (!paused) {
     lastTime = performance.now();
     loop(lastTime);
+    overlay.classList.add('hidden');
   } else {
     cancelAnimationFrame(animId);
     overlayTitle.textContent = 'PAUSA';
     overlayScore.textContent = '';
+    overlayContent.innerHTML = '';
+    restartBtn.classList.remove('hidden');
     overlay.classList.remove('hidden');
   }
 }
@@ -446,6 +639,8 @@ function init() {
   freezeRemaining = 0;
   flashCells = [];
   flashRemaining = 0;
+  combo = 0;
+  maxCombo = 0;
   next = nextPiece();
   spawn();
   updateHUD();
@@ -456,7 +651,7 @@ function init() {
 
 document.addEventListener('keydown', e => {
   if (e.code === 'KeyP') { togglePause(); return; }
-  if (paused || gameOver) return;
+  if (paused || gameOver || !current) return;
   switch (e.code) {
     case 'ArrowLeft':
       if (!collide(current.shape, current.x - 1, current.y)) current.x--;
@@ -479,7 +674,10 @@ document.addEventListener('keydown', e => {
   updateHUD();
 });
 
-restartBtn.addEventListener('click', init);
+restartBtn.addEventListener('click', () => {
+  paused = false;
+  init();
+});
 
 // Theme toggle
 const themeToggle = document.getElementById('theme-toggle');
@@ -496,4 +694,5 @@ themeToggle.addEventListener('change', () => {
   localStorage.setItem('tetris-theme', isLight ? 'light' : 'dark');
 });
 
-init();
+// Show start screen on load
+showStartOverlay();
